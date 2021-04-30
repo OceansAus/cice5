@@ -1,0 +1,71 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    
+    env:
+      FC: gfortran
+      LIBACCESSOM2_ROOT: ${{ github.workspace }}/libaccessom2
+      OASISDIR: ${{ github.workspace }}/oasis3-mct/build/lib
+      LIBAUSCOM_INCS: -I${{ github.workspace }}/oasis3-mct/build/lib/psmile.MPI1/
+      platform: ubuntu
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code 
+        uses: actions/checkout@v2
+      
+      # Install dependencies
+      - name: Install dependencies
+        run: sudo apt-get install -y csh openmpi-bin libopenmpi-dev libopenmpi2 netcdf-bin libnetcdf-dev libnetcdff-dev libnetcdf13 
+
+      - name: Download libaccessom2
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          repo: COSIMA/libaccessom2
+          workflow: CI.yml
+          name: binary_release
+          path: libaccessom2
+
+      - name: Download OASIS3-mct
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          repo: COSIMA/oasis3-mct
+          workflow: CI.yml
+          name: binary_release
+          path: oasis3-mct
+
+      - name: Untar libaccessom2
+        run: |
+          cd ${GITHUB_WORKSPACE}/libaccessom2 && tar -xvf binary_release.tar
+
+      - name: Untar OASIS3-mct
+        run: | 
+          cd ${GITHUB_WORKSPACE}/oasis3-mct/ && tar -xvf binary_release.tar
+
+      # Runs a set of commands using the runners shell
+      - name: Build 1 degree
+        run: |
+          pwd
+          ls -lR
+          echo Building 1 degree
+          env
+          bld/build.sh $platform auscom 360x300
