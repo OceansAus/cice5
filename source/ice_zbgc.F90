@@ -11,6 +11,7 @@
 
       use ice_kinds_mod
       use ice_zbgc_shared ! everything
+      use cpl_arrays_setup, only: ssn, ssalg
 
       implicit none 
 
@@ -56,7 +57,7 @@
          restore_bgc, skl_bgc, &
          tr_bgc_C_sk, tr_bgc_chl_sk, tr_bgc_Am_sk, tr_bgc_Sil_sk, &
          tr_bgc_DMSPp_sk, tr_bgc_DMSPd_sk, tr_bgc_DMS_sk, &
-         restart_bgc, restart_hbrine, phi_snow, bgc_flux_type
+         restart_bgc, restart_hbrine, phi_snow, bgc_flux_type, dz_ocean1
 
       !-----------------------------------------------------------------
       ! default values
@@ -79,6 +80,7 @@
       restart_hbrine  = .false.  ! hbrine restart
       phi_snow        = p5       ! snow porosity
       bgc_flux_type   = 'Jin2006'! type of ocean-ice poston velocity ('constant')
+      dz_ocean1       = 2.3035 ! HH first layer thickness of ocean
 
       !-----------------------------------------------------------------
       ! read from input file
@@ -180,6 +182,7 @@
       call broadcast_scalar(tr_bgc_DMSPp_sk,    master_task)
       call broadcast_scalar(tr_bgc_DMSPd_sk,    master_task)
       call broadcast_scalar(tr_bgc_DMS_sk,      master_task)
+      call broadcast_scalar(dz_ocean1,          master_task)
 
       if (skl_bgc) then
 
@@ -203,6 +206,7 @@
          write(nu_diag,1010) ' tr_bgc_DMSPp_sk           = ', tr_bgc_DMSPp_sk
          write(nu_diag,1010) ' tr_bgc_DMSPd_sk           = ', tr_bgc_DMSPd_sk
          write(nu_diag,1010) ' tr_bgc_DMS_sk             = ', tr_bgc_DMS_sk
+         write(nu_diag,1010) ' dz_ocean1                 = ', dz_ocean1
         
       endif   ! master_task
 
@@ -612,7 +616,7 @@
          ! Define ocean tracer concentration
          do j = 1, ny_block
          do i = 1, nx_block
-            if (tr_bgc_Nit_sk)   ocean_bio(i,j,nlt_bgc_NO   ,iblk) = nit   (i,j,iblk)
+            if (tr_bgc_Nit_sk)   ocean_bio(i,j,nlt_bgc_NO   ,iblk) = ssn   (i,j,iblk)
             if (tr_bgc_chl_sk)   ocean_bio(i,j,nlt_bgc_chl  ,iblk) = algalN(i,j,iblk)*R_chl2N
             if (tr_bgc_Am_sk)    ocean_bio(i,j,nlt_bgc_NH   ,iblk) = amm   (i,j,iblk)
             if (tr_bgc_C_sk)     ocean_bio(i,j,nlt_bgc_C    ,iblk) = algalN(i,j,iblk)*R_C2N
@@ -620,7 +624,8 @@
             if (tr_bgc_DMSPp_sk) ocean_bio(i,j,nlt_bgc_DMSPp,iblk) = dmsp  (i,j,iblk)
             if (tr_bgc_DMSPd_sk) ocean_bio(i,j,nlt_bgc_DMSPd,iblk) = dmsp  (i,j,iblk)
             if (tr_bgc_DMS_sk)   ocean_bio(i,j,nlt_bgc_DMS  ,iblk) = dms   (i,j,iblk)
-            if (tr_bgc_N_sk)     ocean_bio(i,j,nlt_bgc_N    ,iblk) = algalN(i,j,iblk)
+            !if (tr_bgc_N_sk)     ocean_bio(i,j,nlt_bgc_N    ,iblk) = algalN(i,j,iblk)
+            if (tr_bgc_N_sk)     ocean_bio(i,j,nlt_bgc_N    ,iblk) = ssalg (i,j,iblk)
          enddo
          enddo
 
@@ -721,7 +726,7 @@
                                          nbtrcr,                        &
                                          flux_bion(:,:,1:nbtrcr),       &
                                          ocean_bio(:,:,1:nbtrcr, iblk), &
-                                         hmix     (:,:,          iblk), &
+                                         dz_ocean1                    , &
                                          aicen    (:,:,        n,iblk), & 
                                          meltbn   (:,:,        n,iblk), &
                                          congeln  (:,:,        n,iblk), &
